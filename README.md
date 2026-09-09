@@ -83,3 +83,10 @@ To remove the plugin and CLI symlink:
 ./uninstall.sh
 ```
 
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
+
+

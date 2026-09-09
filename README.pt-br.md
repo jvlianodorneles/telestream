@@ -83,3 +83,10 @@ Para remover o plugin e o link do comando CLI:
 ./uninstall.sh
 ```
 
+---
+
+## 📄 Licença
+
+Este projeto está licenciado sob a [Licença MIT](LICENSE).
+
+
