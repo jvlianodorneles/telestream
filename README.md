@@ -1,0 +1,2 @@
+# telestream
+Omarchy telestream plugin
