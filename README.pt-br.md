@@ -1,83 +1,85 @@
-# TeleStream PyQt6
+# TeleStream para Omarchy & Quickshell
 
-Uma aplicação simples construída em Python para transmitir arquivos de vídeo locais ou vídeos do YouTube para um servidor RTMP, como o Telegram, usando `ffmpeg`.
+O TeleStream é um plugin desktop nativo e widget para barra de status no **Omarchy** e **Quickshell** em Wayland (Hyprland), desenvolvido para transmitir arquivos de vídeo locais ou vídeos do YouTube diretamente para servidores RTMP (como Telegram, YouTube, Twitch, Kick) usando `ffmpeg` e `yt-dlp`.
 
-## Recursos
+---
 
--   **Fontes de Vídeo**: Transmita um arquivo de vídeo local ou um vídeo do YouTube.
--   **Servidores Favoritos**: Salve, edite e remova servidores de streaming favoritos (Nome, URL e Chave de Stream) para acesso rápido.
--   **Interface com Temas**: Alterne entre um tema claro e escuro para se adequar à sua preferência.
--   **Controle de Loop**: Escolha se deseja reproduzir um vídeo uma vez ou em loop infinito. Isso funciona tanto para arquivos locais quanto para streams do YouTube.
--   **Predefinições de Qualidade**: Selecione entre várias predefinições de resolução e bitrate (1080p, 720p, 480p ou qualidade de origem) para gerenciar sua largura de banda e qualidade de stream.
--   **Modo Live Story**: Formata automaticamente seu vídeo em uma proporção de aspecto vertical de 9:16 com um fundo desfocado, perfeito para plataformas mobile. Este modo agora respeita as predefinições de qualidade para resolução e bitrate.
--   **Gerenciamento de Logs**: Visualize os logs da aplicação e do `ffmpeg` em uma janela dedicada, com opções para limpar o log ou salvá-lo em um arquivo com data e hora.
--   **Aceleração de Hardware (RPi)**: Inclui uma opção específica para usuários de Raspberry Pi para usar o codec `h264_v4l2m2m` para codificação de vídeo acelerada por hardware.
+## ✨ Recursos
 
-<p align="center">
-<img width="933" height="700" alt="pyqt61" src="https://github.com/user-attachments/assets/dc136e17-9b51-42c5-98ac-3549944186e0" />
+- **Widget de Pílula na Barra de Status (`BarWidget.qml`)**:
+  - Exibe status da transmissão em tempo real, cronômetro decorrido, taxa de bits (bitrate) e telemetria de FPS.
+  - Clique esquerdo: Abre o painel de controle; Clique do meio: Abre os logs em tempo real; Clique direito: Encerra a transmissão.
+- **Painel Central de Controle (`Panel.qml`)**:
+  - **Fontes de Mídia**: Transmissão de arquivos locais (integrado ao seletor de arquivos Flea / portal XDG) ou transmissões e vídeos do YouTube via extração HLS de baixa latência.
+  - **Histórico das Últimas Fontes**: Salva e exibe automaticamente as últimas 5 fontes utilizadas para cada modo (arquivos locais e URLs do YouTube), com seleção em um clique e exclusão rápida.
+  - **Modo Live Story**: Formata o vídeo na proporção vertical 9:16 com desfoque de fundo (blurred background), ideal para transmissões mobile e Telegram Live Stories.
+  - **Predefinições de Qualidade**: Opção "Qualidade de Origem" (cópia direta sem recodificação de vídeo e com consumo mínimo de CPU), 1080p, 720p ou 480p com ajuste zerolatency.
+  - **Gerenciador de Favoritos**: Salve, edite e alterne facilmente entre múltiplos servidores RTMP (URL e Chave de Stream).
+  - **Visualizador de Logs em Tempo Real**: Monitoramento ao vivo da saída do ffmpeg, com limpeza e exportação para arquivo.
+  - **Navegação Wayland Keyboard-First**: Atalhos rápidos (`s` iniciar/parar, `l` logs, `f` favoritos, `a` sobre/PIX, `Esc` fechar).
+- **Daemon CLI em Segundo Plano (`telestream`)**:
+  - Daemon autônomo e independente de janelas gráficas.
+  - Interface CLI completa: `telestream start`, `stop`, `status`, `add-recent`, `clear-recent`, etc.
 
-<img width="836" height="627" alt="pyqt62" src="https://github.com/user-attachments/assets/fac15e40-e52c-42e4-8fff-89842c7fac8d" />
-</p>
+---
 
-## Pré-requisitos
+## 📋 Pré-requisitos
 
--   **Python 3.7+**
--   **ffmpeg**: Você precisa ter o `ffmpeg` instalado e acessível no `PATH` do seu sistema.
-    -   Para Windows (usando Winget): `winget install ffmpeg`
-    -   Para Debian/Ubuntu: `sudo apt update && sudo apt install ffmpeg`
-    -   Para Arch Linux: `sudo pacman -S ffmpeg`
-    -   Para macOS (usando Homebrew): `brew install ffmpeg`
+- **Omarchy** em execução no Wayland / Hyprland
+- **Quickshell** (`/usr/bin/quickshell`)
+- **ffmpeg**
+- **yt-dlp** (para transmissões a partir do YouTube)
 
-## Instalação
+Instale as dependências no Arch Linux / Omarchy:
+```bash
+sudo pacman -S ffmpeg yt-dlp
+```
 
-1.  Clone este repositório ou baixe os arquivos.
-2.  Navegue até o diretório do projeto:
-    ```bash
-    cd telestream-pyqt6
-    ```
-3.  Crie um ambiente virtual:
-    ```bash
-    python3 -m venv venv
-    ```
-4.  Ative o ambiente virtual:
-    ```bash
-    source venv/bin/activate
-    # Se você estiver usando Windows, use o comando `.\venv\Scripts\activate` (sem a palavra `source`) para ativar o ambiente virtual.
-    ```
-5.  Instale as dependências Python necessárias:
-    ```bash
-    pip install -r requirements.txt
-    ```
-6.  Execute a aplicação:
-    ```bash
-    python3 app.py
-    # No Windows, pode ser necessário usar explicitamente o executável Python do ambiente virtual: `.\venv\Scripts\python.exe app.py`
-    ```
+---
 
-## Como Usar
+## 🚀 Instalação
 
-1.  **Fonte de Vídeo**:
-    *   **Caminho do Vídeo**: Insira o caminho absoluto para um arquivo de vídeo local.
-    *   **Ou URL do YouTube**: Cole a URL de um vídeo do YouTube.
+1. Execute o script de instalação no diretório do projeto:
+   ```bash
+   ./install.sh
+   ```
 
-2.  **Detalhes do Servidor**:
-    *   **Servidor Favorito**: Selecione um servidor pré-salvo neste menu para preencher automaticamente a URL and a Chave.
-    *   **URL do Servidor**: A URL RTMP/RTMPS do servidor de streaming.
-    *   **Chave de Stream**: Sua chave de stream privada. Clique no ícone de olho para mostrar/ocultar.
+2. Ative o widget na barra de status do Omarchy:
+   ```bash
+   omarchy plugin enable dorneles.telestream --section right
+   ```
 
-3.  **Opções**:
-    *   **Modo RPi**: Marque para usar o codec `h264_v4l2m2m`, recomendado para aceleração de hardware no Raspberry Pi.
-    *   **Modo Loop**: Escolha "Loop Infinito" para repetir o vídeo quando ele terminar, ou "Reproduzir Uma Vez" para transmiti-lo uma única vez.
-    *   **Live Story**: Marque para ativar o formato de vídeo vertical 9:16.
-    *   **Predefinição de Qualidade**: Selecione uma resolução e bitrate para sua stream. "Qualidade de Origem" não redimensionará ou recodificará o bitrate do vídeo.
+3. Para recarregar o plugin após alterações:
+   ```bash
+   omarchy restart shell
+   ```
 
-4.  **Streaming**:
-    *   Pressione **Iniciar Stream** para começar.
-    *   Pressione **Parar Stream** para encerrar a transmissão.
+---
 
-5.  **Utilitários**:
-    *   **Mostrar Log**: Abre uma janela para visualizar logs detalhados da aplicação e do `ffmpeg`. Você também pode limpar o log a partir desta janela.
-    *   **Salvar Log**: Salva a sessão de log atual em um arquivo `.txt` com data e hora no diretório raiz da aplicação.
-    *   **Gerenciar Favoritos**: Abre um diálogo para adicionar, editar ou remover suas configurações de servidor salvas.
-    *   **Sobre/Doar**: Mostra informações sobre a aplicação e opções de doação.
-    *   **Alternar Tema**: Alterna a aplicação entre os temas claro and escuro.
+## 🖥️ Uso via Linha de Comando (CLI)
+
+O instalador cria um link global executável chamado `telestream`:
+
+```bash
+# Iniciar transmissão de um arquivo local ou URL do YouTube
+telestream start --source "/caminho/para/video.mp4" --server "rtmps://dc1-1.rtmp.t.me/s/" --key "SUA_CHAVE"
+
+# Iniciar no modo Live Story (vertical 9:16)
+telestream start --source "https://www.youtube.com/watch?v=..." --server "rtmps://..." --key "..." --story
+
+# Verificar status da transmissão
+telestream status
+
+# Parar transmissão
+telestream stop
+```
+
+---
+
+## 🗑️ Desinstalação
+
+Para remover o plugin e o link do comando CLI:
+```bash
+./uninstall.sh
+```
+

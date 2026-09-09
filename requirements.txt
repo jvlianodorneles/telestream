@@ -1,5 +1,1 @@
-textual
-qrcode
-yt-dlp
-PyQt6
-Pillow
+yt-dlp>=2024.0.0

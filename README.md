@@ -1,83 +1,85 @@
-# TeleStream PyQt6
+# TeleStream for Omarchy & Quickshell
 
-A simple application built in Python to stream local video files or YouTube videos to an RTMP server, such as Telegram, using `ffmpeg`.
+TeleStream is a high-craft native desktop plugin and status bar widget for **Omarchy** and **Quickshell** on Wayland (Hyprland), designed to stream local video files or YouTube videos directly to RTMP servers (such as Telegram, YouTube, Twitch, Kick) using `ffmpeg` and `yt-dlp`.
 
-## Features
+---
 
--   **Video Sources**: Stream a local video file or a YouTube video.
--   **Favorite Servers**: Save, edit, and remove favorite streaming servers (Name, URL, and Stream Key) for quick access.
--   **Themeable Interface**: Switch between a light and dark theme to suit your preference.
--   **Loop Control**: Choose whether to play a video once or loop it infinitely. This works for both local files and YouTube streams.
--   **Quality Presets**: Select from various resolution and bitrate presets (1080p, 720p, 480p, or source quality) to manage your bandwidth and stream quality.
--   **Live Story Mode**: Automatically formats your video into a 9:16 vertical aspect ratio with a blurred background, perfect for mobile-first platforms. This mode now respects the selected quality presets for resolution and bitrate.
--   **Log Management**: View application and `ffmpeg` logs in a dedicated window, with options to clear the log or save it to a timestamped file.
--   **Hardware Acceleration (RPi)**: Includes a specific option for Raspberry Pi users to use the `h264_v4l2m2m` codec for hardware-accelerated video encoding.
+## ✨ Features
 
-<p align="center">
-<img width="933" height="700" alt="pyqt61" src="https://github.com/user-attachments/assets/dc136e17-9b51-42c5-98ac-3549944186e0" />
+- **Status Bar Pill Widget (`BarWidget.qml`)**:
+  - Displays real-time streaming status, live elapsed timer, bitrate, and FPS telemetry.
+  - Left-click opens the Control Center panel; Middle-click jumps to live logs; Right-click stops streaming.
+- **Control Center Panel (`Panel.qml`)**:
+  - **Media Sources**: Stream local video files (integrated with Flea / portal file picker) or YouTube streams/VODs with optimized low-latency HLS extraction.
+  - **Recent Sources History**: Automatically saves and displays the last 5 media sources per mode (local files and YouTube URLs) with quick-select and clear controls.
+  - **Live Story Mode**: Formats video into a 9:16 vertical aspect ratio with blurred background, ideal for mobile platforms and Telegram Live Stories.
+  - **Quality Presets**: Choose between Source Quality (direct stream copy with zero transcoding overhead), 1080p, 720p, or 480p with zerolatency tuning.
+  - **Favorites Manager**: Save, edit, and switch between multiple RTMP streaming servers (URL and Stream Key).
+  - **Live Logs Viewer**: Real-time log monitoring with autoscroll, log clearing, and export to file.
+  - **Wayland Keyboard-First**: Quick shortcuts (`s` start/stop, `l` logs, `f` favorites, `a` about, `Esc` close).
+- **Background CLI Daemon (`telestream`)**:
+  - Headless streaming daemon independent of graphical windows.
+  - Full CLI interface: `telestream start`, `stop`, `status`, `add-recent`, `clear-recent`, and more.
 
-<img width="836" height="627" alt="pyqt62" src="https://github.com/user-attachments/assets/fac15e40-e52c-42e4-8fff-89842c7fac8d" />
-</p>
+---
 
-## Prerequisites
+## 📋 Prerequisites
 
--   **Python 3.7+**
--   **ffmpeg**: You need to have `ffmpeg` installed and accessible in your system's `PATH`.
-    -   For Windows (using Winget): `winget install ffmpeg`
-    -   For Debian/Ubuntu: `sudo apt update && sudo apt install ffmpeg`
-    -   For Arch Linux: `sudo pacman -S ffmpeg`
-    -   For macOS (using Homebrew): `brew install ffmpeg`
+- **Omarchy** running on Wayland / Hyprland
+- **Quickshell** (`/usr/bin/quickshell`)
+- **ffmpeg**
+- **yt-dlp** (for YouTube streams)
 
-## Installation
+Install dependencies on Arch Linux / Omarchy:
+```bash
+sudo pacman -S ffmpeg yt-dlp
+```
 
-1.  Clone this repository or download the files.
-2.  Navigate to the project directory:
-    ```bash
-    cd telestream-pyqt6
-    ```
-3.  Create a virtual environment:
-    ```bash
-    python3 -m venv venv
-    ```
-4.  Activate the virtual environment:
-    ```bash
-    source venv/bin/activate
-    # If you're using Windows, use the command `.\venv\Scripts\activate` (without the word `source`) to activate the virtual environment.
-    ```
-5.  Install the necessary Python dependencies:
-    ```bash
-    pip install -r requirements.txt
-    ```
-6.  Run the application:
-    ```bash
-    python3 app.py
-    # On Windows, you might need to explicitly use the Python executable from the virtual environment: `.\venv\Scripts\python.exe app.py`
-    ```
+---
 
-## How to Use
+## 🚀 Installation
 
-1.  **Video Source**:
-    *   **Video Path**: Enter the absolute path to a local video file.
-    *   **Or YouTube URL**: Paste the URL of a YouTube video.
+1. Run the installer script inside the project directory:
+   ```bash
+   ./install.sh
+   ```
 
-2.  **Server Details**:
-    *   **Favorite Server**: Select a pre-saved server from this dropdown to auto-fill the URL and Key.
-    *   **Server URL**: The RTMP/RTMPS URL of the streaming server.
-    *   **Stream Key**: Your private stream key. Click the eye icon to show/hide it.
+2. Enable the widget in your Omarchy status bar:
+   ```bash
+   omarchy plugin enable dorneles.telestream --section right
+   ```
 
-3.  **Options**:
-    *   **RPi Mode**: Check this to use the `h264_v4l2m2m` codec, recommended for hardware acceleration on Raspberry Pi.
--   **Loop Mode**: Choose "Loop Infinitely" to repeat the video when it ends, or "Play Once" to stream it a single time.
-    -   **Live Story**: Check this to enable the 9:16 vertical video format.
-    -   **Quality Preset**: Select a resolution and bitrate for your stream. "Source Quality" will not resize or re-encode the video bitrate.
+3. To reload the plugin after changes:
+   ```bash
+   omarchy restart shell
+   ```
 
-4.  **Streaming**:
-    *   Press **Start Stream** to begin.
-    *   Press **Stop Stream** to end the transmission.
+---
 
-5.  **Utilities**:
-    *   **Show Log**: Opens a window to view detailed logs from the application and `ffmpeg`. You can also clear the log from this window.
-    *   **Save Log**: Saves the current log session to a timestamped `.txt` file in the application's root directory.
-    *   **Manage Favorites**: Opens a dialog to add, edit, or remove your saved server configurations.
-    *   **About/Donate**: Shows information about the application and donation options.
-    *   **Toggle Theme**: Switches the application between light and dark themes.
+## 🖥️ CLI Usage
+
+The installer links the backend tool globally as `telestream`:
+
+```bash
+# Start streaming a local video or YouTube URL
+telestream start --source "/path/to/video.mp4" --server "rtmps://dc1-1.rtmp.t.me/s/" --key "STREAM_KEY"
+
+# Start with Live Story (9:16 vertical)
+telestream start --source "https://www.youtube.com/watch?v=..." --server "rtmps://..." --key "..." --story
+
+# Check current status
+telestream status
+
+# Stop streaming
+telestream stop
+```
+
+---
+
+## 🗑️ Uninstallation
+
+To remove the plugin and CLI symlink:
+```bash
+./uninstall.sh
+```
+

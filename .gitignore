@@ -110,3 +110,4 @@ dmypy.json
 # Custom ignores
 config.json
 /tmp/
+.agents/

@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "id": "dorneles.telestream",
+  "name": "TeleStream",
+  "version": "1.0.0",
+  "author": "Dorneles",
+  "license": "MIT",
+  "icon": "assets/icon.svg",
+  "description": "Stream local video files or YouTube videos directly to RTMP servers (Telegram, YouTube, Twitch) with 9:16 vertical Live Story mode, quality presets, favorites manager, and real-time logs.",
+  "keywords": [
+    "stream",
+    "rtmp",
+    "telegram",
+    "ffmpeg",
+    "live",
+    "video",
+    "quickshell",
+    "omarchy"
+  ],
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "TeleStream",
+    "icon": "assets/icon.svg",
+    "description": "TeleStream status pill and RTMP streaming control center",
+    "category": "Media",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "displayFormat": "icon_text",
+      "showDuration": true
+    },
+    "schema": [
+      {
+        "key": "displayFormat",
+        "type": "enum",
+        "label": "Bar Display Format",
+        "options": [
+          "icon_text",
+          "icon_only",
+          "text_only"
+        ],
+        "defaultValue": "icon_text",
+        "description": "How TeleStream is displayed on the status bar."
+      },
+      {
+        "key": "showDuration",
+        "type": "boolean",
+        "label": "Show Live Stream Duration",
+        "defaultValue": true,
+        "description": "Show elapsed streaming time on the bar pill when live."
+      }
+    ]
+  }
+}
