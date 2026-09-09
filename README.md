@@ -1,5 +1,7 @@
 # TeleStream for Omarchy & Quickshell
 
+![TeleStream Preview](preview.png)
+
 TeleStream is a high-craft native desktop plugin and status bar widget for **Omarchy** and **Quickshell** on Wayland (Hyprland), designed to stream local video files or YouTube videos directly to RTMP servers (such as Telegram, YouTube, Twitch, Kick) using `ffmpeg` and `yt-dlp`.
 
 ---
