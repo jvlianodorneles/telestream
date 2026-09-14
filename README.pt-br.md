@@ -63,11 +63,17 @@ sudo pacman -S ffmpeg yt-dlp
 O instalador cria um link global executável chamado `telestream`:
 
 ```bash
-# Iniciar transmissão de um arquivo local ou URL do YouTube
-telestream start --source "/caminho/para/video.mp4" --server "rtmps://dc1-1.rtmp.t.me/s/" --key "SUA_CHAVE"
+# Iniciar transmissão passando a chave via stdin (previne vazamentos de inspeção em /proc/<pid>/cmdline)
+printf '%s\n' "SUA_CHAVE" | telestream start --source "/caminho/para/video.mp4" --server "rtmps://dc1-1.rtmp.t.me/s/" --key-stdin
 
-# Iniciar no modo Live Story (vertical 9:16)
-telestream start --source "https://www.youtube.com/watch?v=..." --server "rtmps://..." --key "..." --story
+# Ou transmitir utilizando um perfil de servidor favorito (credenciais resolvidas do arquivo 0600)
+telestream start --source "/caminho/para/video.mp4" --favorite "Telegram Live"
+
+# Iniciar no modo Live Story (vertical 9:16) com chave via stdin
+printf '%s\n' "SUA_CHAVE" | telestream start --source "https://www.youtube.com/watch?v=..." --server "rtmps://..." --key-stdin --story
+
+# Salvar um perfil favorito com a chave transmitida de forma segura via stdin
+printf '%s\n' "SUA_CHAVE" | telestream save-favorite "Telegram Live" "rtmps://dc1-1.rtmp.t.me/s/" --key-stdin
 
 # Verificar status da transmissão
 telestream status
@@ -75,6 +81,15 @@ telestream status
 # Parar transmissão
 telestream stop
 ```
+
+---
+
+## 🔒 Segurança e Gerenciamento de Segredos
+
+O TeleStream segue rigorosamente as diretrizes de segurança e privacidade do Omarchy Quattro:
+- **Nenhum segredo em argv**: Os argumentos de linha de comando em `/proc/<pid>/cmdline` são legíveis por qualquer processo no Linux. O TeleStream bloqueia o envio de chaves de transmissão via argumentos `--key` para eliminar vulnerabilidades de inspeção local de processos.
+- **Ingestão Segura de Chaves**: Segredos trafegam exclusivamente através de canais protegidos: entrada padrão (`--key-stdin`), descritores de arquivo herdados (`--key-fd`) ou arquivos restritos (`--key-file`). Variáveis de ambiente isoladas não são tratadas como fronteiras confidenciais equivalentes.
+- **Armazenamento Protegido**: Perfis favoritos salvos são mantidos exclusivamente em `~/.config/telestream/config.json` com permissões estritas `0600` dentro de diretório privado `0700`.
 
 ---
 

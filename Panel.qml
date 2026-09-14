@@ -309,6 +309,34 @@ Panel {
     }
   }
 
+  // Secure process for streaming daemon with stream key ingested via stdin
+  property string pendingStreamKey: ""
+
+  Process {
+    id: streamerProc
+    stdinEnabled: true
+    onStarted: {
+      if (root.pendingStreamKey !== "") {
+        write(root.pendingStreamKey + "\n")
+        root.pendingStreamKey = ""
+      }
+    }
+  }
+
+  // Secure process for saving favorites with stream key ingested via stdin
+  property string pendingFavKey: ""
+
+  Process {
+    id: saveFavProc
+    stdinEnabled: true
+    onStarted: {
+      if (root.pendingFavKey !== "") {
+        write(root.pendingFavKey + "\n")
+        root.pendingFavKey = ""
+      }
+    }
+  }
+
   function parseConfigFile(raw) {
     if (!raw || raw.trim() === "") return
     try {
@@ -339,6 +367,12 @@ Panel {
     userConfigFileView.reload()
     localConfigFileView.reload()
     loadConfigData()
+  }
+
+  Component.onDestruction: {
+    if (streamerProc.running) {
+      streamerProc.signal(15)
+    }
   }
 
   function open() {
@@ -433,14 +467,15 @@ Panel {
     favNotification = isNew ? ("✓ Favorite '" + n + "' added!") : ("✓ Favorite '" + n + "' updated!")
     clearFavoriteForm()
 
-    // 2. Persist to disk via CLI in background
+    // 2. Persist to disk via CLI in background securely via stdin
     var script = (root.cliScriptPath && root.cliScriptPath !== "") ? root.cliScriptPath : root.defaultCliPath
-    var cmd = ["python3", script, "save-favorite", n, u, k]
+    var cmd = ["python3", script, "save-favorite", n, u, "--key-stdin"]
     if (!isNew && oldN !== "" && oldN !== n) {
-      cmd.push("--old-name")
-      cmd.push(oldN)
+      cmd.push("--old-name", oldN)
     }
-    Quickshell.execDetached(cmd)
+    root.pendingFavKey = k
+    saveFavProc.command = cmd
+    saveFavProc.running = true
   }
 
   function removeFavorite(favName) {
@@ -547,19 +582,30 @@ Panel {
       "--preset", root.qualityPreset
     ]
 
+    if (streamerProc.running || (root.streamState && root.streamState.status === "streaming")) {
+      root.logNotification = "Stream is already running."
+      return
+    }
+
     var isSavedFav = (root.selectedFavoriteName !== "" && root.selectedFavoriteName !== "Custom Server")
     if (isSavedFav) {
       cmd.push("--favorite", root.selectedFavoriteName)
+      root.pendingStreamKey = ""
     } else {
-      cmd.push("--server", sUrl, "--key", sKey)
+      cmd.push("--server", sUrl, "--key-stdin")
+      root.pendingStreamKey = sKey
     }
 
     if (root.liveStory) cmd.push("--story")
 
-    Quickshell.execDetached(cmd)
+    streamerProc.command = cmd
+    streamerProc.running = true
   }
 
   function stopStream() {
+    if (streamerProc.running) {
+      streamerProc.signal(15)
+    }
     var script = (root.cliScriptPath && root.cliScriptPath !== "") ? root.cliScriptPath : root.defaultCliPath
     Quickshell.execDetached(["python3", script, "stop"])
   }

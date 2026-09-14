@@ -63,11 +63,17 @@ sudo pacman -S ffmpeg yt-dlp
 The installer links the backend tool globally as `telestream`:
 
 ```bash
-# Start streaming a local video or YouTube URL
-telestream start --source "/path/to/video.mp4" --server "rtmps://dc1-1.rtmp.t.me/s/" --key "STREAM_KEY"
+# Start streaming with stream key piped via stdin (prevents /proc/<pid>/cmdline inspection leaks)
+printf '%s\n' "STREAM_KEY" | telestream start --source "/path/to/video.mp4" --server "rtmps://dc1-1.rtmp.t.me/s/" --key-stdin
 
-# Start with Live Story (9:16 vertical)
-telestream start --source "https://www.youtube.com/watch?v=..." --server "rtmps://..." --key "..." --story
+# Or stream using a saved favorite server profile (credentials resolved from 0600 config)
+telestream start --source "/path/to/video.mp4" --favorite "Telegram Live"
+
+# Start with Live Story (9:16 vertical) and key piped via stdin
+printf '%s\n' "STREAM_KEY" | telestream start --source "https://www.youtube.com/watch?v=..." --server "rtmps://..." --key-stdin --story
+
+# Save a favorite server profile with stream key passed securely via stdin
+printf '%s\n' "STREAM_KEY" | telestream save-favorite "Telegram Live" "rtmps://dc1-1.rtmp.t.me/s/" --key-stdin
 
 # Check current status
 telestream status
@@ -75,6 +81,15 @@ telestream status
 # Stop streaming
 telestream stop
 ```
+
+---
+
+## 🔒 Security & Secrets Management
+
+TeleStream adheres strictly to Omarchy Quattro desktop security and privacy standards:
+- **No secrets in argv**: Process command-line arguments in `/proc/<pid>/cmdline` are world-readable on Linux. TeleStream prohibits passing stream keys via `--key` arguments to eliminate local process inspection vulnerabilities.
+- **Secure Key Ingestion**: Secrets travel exclusively via protected channels: standard input (`--key-stdin`), inherited file descriptors (`--key-fd`), or restricted files (`--key-file`). Environment variables alone are not treated as equivalent confidentiality boundaries.
+- **Protected Storage**: Saved favorite profiles are stored exclusively in `~/.config/telestream/config.json` with strict `0600` permissions within a verified `0700` directory.
 
 ---
 

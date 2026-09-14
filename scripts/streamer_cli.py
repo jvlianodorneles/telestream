@@ -595,9 +595,22 @@ def cmd_start(args):
     except Exception:
         pass
 
+    # Reject insecure CLI parameter if passed
+    if getattr(args, "key", None):
+        err_msg = (
+            "Passing stream keys via --key is insecure because process command lines "
+            "are world-readable in /proc/<pid>/cmdline. "
+            "Please pass your stream key securely via standard input (--key-stdin), "
+            "an inherited file descriptor (--key-fd), a protected file (--key-file), "
+            "or use a saved favorite (--favorite)."
+        )
+        sys.stderr.write(f"Error: {err_msg}\n")
+        print(json.dumps({"error": err_msg}))
+        sys.exit(1)
+
     # Resolve server URL and stream key securely
     server_url = (args.server or "").strip()
-    stream_key = (args.key or os.environ.get("TELESTREAM_KEY", "")).strip()
+    stream_key = ""
 
     if getattr(args, "favorite", None):
         cfg = load_config()
@@ -605,9 +618,47 @@ def cmd_start(args):
             if fav.get("name") == args.favorite:
                 if not server_url:
                     server_url = fav.get("url", "").strip()
-                if not stream_key:
-                    stream_key = fav.get("key", "").strip()
+                stream_key = fav.get("key", "").strip()
                 break
+
+    if not stream_key:
+        if getattr(args, "key_stdin", False):
+            if not sys.stdin.isatty():
+                stream_key = sys.stdin.readline().rstrip("\r\n").strip()
+            else:
+                import getpass
+                stream_key = getpass.getpass("Enter Stream Key: ").strip()
+        elif getattr(args, "key_fd", None) is not None:
+            try:
+                fd = int(args.key_fd)
+                stream_key = os.read(fd, 4096).decode("utf-8").rstrip("\r\n").strip()
+            except Exception as e:
+                sys.stderr.write(f"Error reading stream key from fd {args.key_fd}: {e}\n")
+                sys.exit(1)
+        elif getattr(args, "key_file", None):
+            try:
+                key_path = Path(args.key_file).resolve()
+                if not key_path.exists():
+                    sys.stderr.write(f"Error: Stream key file does not exist: {key_path}\n")
+                    sys.exit(1)
+                st = key_path.stat()
+                if st.st_mode & 0o077:
+                    sys.stderr.write(f"Warning: Stream key file has loose permissions ({oct(st.st_mode)}). Expected 0600.\n")
+                stream_key = key_path.read_text(encoding="utf-8").rstrip("\r\n").strip()
+            except Exception as e:
+                sys.stderr.write(f"Error reading stream key from file: {e}\n")
+                sys.exit(1)
+        elif not sys.stdin.isatty():
+            try:
+                import select
+                r, _, _ = select.select([sys.stdin], [], [], 0)
+                if r:
+                    stream_key = sys.stdin.readline().rstrip("\r\n").strip()
+            except Exception:
+                pass
+        elif os.environ.get("TELESTREAM_KEY", "").strip():
+            # Fallback only - environment variable alone is not an equivalent confidentiality boundary
+            stream_key = os.environ.get("TELESTREAM_KEY", "").strip()
 
     if not server_url:
         sys.stderr.write("Error: Server URL is required (--server or --favorite)\n")
@@ -615,7 +666,7 @@ def cmd_start(args):
         sys.exit(1)
 
     if not stream_key:
-        sys.stderr.write("Error: Stream key is required (--key, TELESTREAM_KEY env, or --favorite)\n")
+        sys.stderr.write("Error: Stream key is required (--key-stdin, --key-fd, --key-file, or --favorite)\n")
         print(json.dumps({"error": "Stream key is required"}))
         sys.exit(1)
 
@@ -685,7 +736,54 @@ def cmd_get_config():
     cfg = load_config()
     print(json.dumps(cfg))
 
-def cmd_save_favorite(name: str, url: str, key: str, old_name: str = None):
+def cmd_save_favorite(name: str, url: str, key: str = None, old_name: str = None,
+                      key_stdin: bool = False, key_fd: int = None, key_file: str = None):
+    # Reject insecure positional key argument
+    if key:
+        err_msg = (
+            "Passing stream keys as command-line arguments is insecure because "
+            "process command lines are world-readable in /proc/<pid>/cmdline. "
+            "Please pass your stream key securely via standard input (--key-stdin), "
+            "an inherited file descriptor (--key-fd), or a protected file (--key-file)."
+        )
+        sys.stderr.write(f"Error: {err_msg}\n")
+        print(json.dumps({"error": err_msg}))
+        sys.exit(1)
+
+    resolved_key = ""
+    if key_stdin:
+        if not sys.stdin.isatty():
+            resolved_key = sys.stdin.readline().rstrip("\r\n").strip()
+        else:
+            import getpass
+            resolved_key = getpass.getpass("Enter Stream Key: ").strip()
+    elif key_fd is not None:
+        try:
+            resolved_key = os.read(key_fd, 4096).decode("utf-8").rstrip("\r\n").strip()
+        except Exception as e:
+            sys.stderr.write(f"Error reading stream key from fd {key_fd}: {e}\n")
+            sys.exit(1)
+    elif key_file:
+        try:
+            key_p = Path(key_file).resolve()
+            resolved_key = key_p.read_text(encoding="utf-8").rstrip("\r\n").strip()
+        except Exception as e:
+            sys.stderr.write(f"Error reading stream key from file: {e}\n")
+            sys.exit(1)
+    elif not sys.stdin.isatty():
+        try:
+            import select
+            r, _, _ = select.select([sys.stdin], [], [], 0)
+            if r:
+                resolved_key = sys.stdin.readline().rstrip("\r\n").strip()
+        except Exception:
+            pass
+
+    if not resolved_key:
+        sys.stderr.write("Error: Stream key is required (--key-stdin, --key-fd, or --key-file)\n")
+        print(json.dumps({"error": "Stream key is required"}))
+        sys.exit(1)
+
     cfg = load_config()
     favs = cfg.get("favorites", [])
 
@@ -697,11 +795,11 @@ def cmd_save_favorite(name: str, url: str, key: str, old_name: str = None):
     for item in favs:
         if item.get("name") == name:
             item["url"] = url
-            item["key"] = key
+            item["key"] = resolved_key
             found = True
             break
     if not found:
-        favs.append({"name": name, "url": url, "key": key})
+        favs.append({"name": name, "url": url, "key": resolved_key})
 
     cfg["favorites"] = favs
     cfg["last_favorite_name"] = name
@@ -744,7 +842,10 @@ def main():
     p_start = subparsers.add_parser("start")
     p_start.add_argument("--source", required=True, help="Video path or YouTube URL")
     p_start.add_argument("--server", default="", help="RTMP Server URL (e.g. rtmps://...)")
-    p_start.add_argument("--key", default="", help="Stream Key (or set TELESTREAM_KEY env)")
+    p_start.add_argument("--key-stdin", action="store_true", help="Read stream key securely from standard input (prevents /proc/cmdline leaks)")
+    p_start.add_argument("--key-fd", type=int, default=None, help="Read stream key securely from an inherited file descriptor")
+    p_start.add_argument("--key-file", default=None, help="Read stream key securely from a file (mode 0600)")
+    p_start.add_argument("--key", default=None, help=argparse.SUPPRESS)
     p_start.add_argument("--favorite", default=None, help="Favorite server name to resolve URL and Key securely")
     p_start.add_argument("--loop", default="Loop Infinitely", choices=["Loop Infinitely", "Play Once"])
     p_start.add_argument("--preset", default="Source Quality")
@@ -762,9 +863,12 @@ def main():
 
     # save-favorite
     p_fav = subparsers.add_parser("save-favorite")
-    p_fav.add_argument("name")
-    p_fav.add_argument("url")
-    p_fav.add_argument("key")
+    p_fav.add_argument("name", help="Favorite profile name")
+    p_fav.add_argument("url", help="RTMP Server URL")
+    p_fav.add_argument("--key-stdin", action="store_true", help="Read stream key securely from standard input")
+    p_fav.add_argument("--key-fd", type=int, default=None, help="Read stream key securely from an inherited file descriptor")
+    p_fav.add_argument("--key-file", default=None, help="Read stream key securely from a file (mode 0600)")
+    p_fav.add_argument("key", nargs="?", default=None, help=argparse.SUPPRESS)
     p_fav.add_argument("--old-name", dest="old_name", default=None)
 
     # remove-favorite
@@ -809,7 +913,15 @@ def main():
     elif args.subcommand == "get-config":
         cmd_get_config()
     elif args.subcommand == "save-favorite":
-        cmd_save_favorite(args.name, args.url, args.key, getattr(args, "old_name", None))
+        cmd_save_favorite(
+            args.name,
+            args.url,
+            key=getattr(args, "key", None),
+            old_name=getattr(args, "old_name", None),
+            key_stdin=getattr(args, "key_stdin", False),
+            key_fd=getattr(args, "key_fd", None),
+            key_file=getattr(args, "key_file", None),
+        )
     elif args.subcommand == "remove-favorite":
         cmd_remove_favorite(args.name)
     elif args.subcommand == "set-last-favorite":
